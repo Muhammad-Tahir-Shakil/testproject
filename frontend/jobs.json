@@ -1,0 +1,299 @@
+{
+  "vendors": [
+    {
+      "vendor_id": "V-001",
+      "name": "Northstar Services",
+      "service_regions": [
+        "north",
+        "central"
+      ],
+      "skills": [
+        "hvac",
+        "electrical",
+        "plumbing",
+        "refrigeration",
+        "controls"
+      ],
+      "capacity_total": 10,
+      "capacity_used": 4,
+      "completion_rate": 0.94,
+      "similar_job_rate": 0.91,
+      "avg_response_hours": 3,
+      "rework_rate": 0.05,
+      "risk_levels_supported": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "active": true,
+      "sample_size": 412,
+      "data_age_hours": 3.0
+    },
+    {
+      "vendor_id": "V-002",
+      "name": "RapidFix Partners",
+      "service_regions": [
+        "north"
+      ],
+      "skills": [
+        "hvac",
+        "refrigeration"
+      ],
+      "capacity_total": 8,
+      "capacity_used": 2,
+      "completion_rate": 0.88,
+      "similar_job_rate": 0.83,
+      "avg_response_hours": 2,
+      "rework_rate": 0.1,
+      "risk_levels_supported": [
+        "low",
+        "medium"
+      ],
+      "active": true,
+      "sample_size": 168,
+      "data_age_hours": 6.0
+    },
+    {
+      "vendor_id": "V-003",
+      "name": "Central Trade Co",
+      "service_regions": [
+        "central",
+        "south"
+      ],
+      "skills": [
+        "electrical",
+        "plumbing",
+        "generator"
+      ],
+      "capacity_total": 12,
+      "capacity_used": 5,
+      "completion_rate": 0.9,
+      "similar_job_rate": 0.72,
+      "avg_response_hours": 6,
+      "rework_rate": 0.08,
+      "risk_levels_supported": [
+        "medium",
+        "high"
+      ],
+      "active": true,
+      "sample_size": 96,
+      "data_age_hours": 12.0
+    },
+    {
+      "vendor_id": "V-005",
+      "name": "MetroLift Engineering",
+      "service_regions": [
+        "east",
+        "central"
+      ],
+      "skills": [
+        "elevator",
+        "electrical",
+        "controls"
+      ],
+      "capacity_total": 7,
+      "capacity_used": 3,
+      "completion_rate": 0.96,
+      "similar_job_rate": 0.89,
+      "avg_response_hours": 4,
+      "rework_rate": 0.03,
+      "risk_levels_supported": [
+        "medium",
+        "high"
+      ],
+      "active": true,
+      "sample_size": 11,
+      "data_age_hours": 96.0
+    },
+    {
+      "vendor_id": "V-006",
+      "name": "GreenSpark Energy",
+      "service_regions": [
+        "south",
+        "east"
+      ],
+      "skills": [
+        "electrical",
+        "solar",
+        "generator",
+        "battery"
+      ],
+      "capacity_total": 9,
+      "capacity_used": 3,
+      "completion_rate": 0.92,
+      "similar_job_rate": 0.86,
+      "avg_response_hours": 5,
+      "rework_rate": 0.06,
+      "risk_levels_supported": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "active": true,
+      "sample_size": 57,
+      "data_age_hours": 20.0
+    },
+    {
+      "vendor_id": "V-007",
+      "name": "SafeFlow Facilities",
+      "service_regions": [
+        "south",
+        "central"
+      ],
+      "skills": [
+        "plumbing",
+        "fire safety",
+        "water treatment"
+      ],
+      "capacity_total": 11,
+      "capacity_used": 6,
+      "completion_rate": 0.91,
+      "similar_job_rate": 0.84,
+      "avg_response_hours": 5,
+      "rework_rate": 0.07,
+      "risk_levels_supported": [
+        "low",
+        "medium"
+      ],
+      "active": true,
+      "sample_size": 134,
+      "data_age_hours": 8.0
+    },
+    {
+      "vendor_id": "V-004",
+      "name": "Unavailable Example",
+      "service_regions": [
+        "north"
+      ],
+      "skills": [
+        "hvac",
+        "electrical"
+      ],
+      "capacity_total": 4,
+      "capacity_used": 4,
+      "completion_rate": 0.99,
+      "similar_job_rate": 0.99,
+      "avg_response_hours": 1,
+      "rework_rate": 0.01,
+      "risk_levels_supported": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "active": true,
+      "sample_size": 240,
+      "data_age_hours": 4.0
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "retail-hvac",
+      "label": "Pinecrest Retail \u00b7 Chiller failure",
+      "job": {
+        "job_id": "JOB-24081",
+        "customer_name": "Pinecrest Retail Group",
+        "site_name": "Pinecrest Mall \u00b7 North Plant Room",
+        "asset_label": "Chiller plant CH-04",
+        "job_type": "HVAC repair",
+        "title": "Emergency chiller failure affecting tenant cooling",
+        "details": "The primary 180-ton chiller is short-cycling and two condenser fans are offline. Inspect the refrigeration circuit, verify electrical controls, and restore stable cooling before the morning trading window.",
+        "required_skills": [
+          "hvac",
+          "refrigeration",
+          "electrical"
+        ],
+        "region": "north",
+        "sla_hours": 4,
+        "risk_level": "medium"
+      },
+      "top_k": 4
+    },
+    {
+      "id": "office-elevator",
+      "label": "HarborPoint Offices \u00b7 Lift outage",
+      "job": {
+        "job_id": "JOB-24082",
+        "customer_name": "HarborPoint Property Trust",
+        "site_name": "HarborPoint Tower \u00b7 East Lobby",
+        "asset_label": "Passenger lift L-02",
+        "job_type": "Elevator repair",
+        "title": "Passenger elevator stopped between floors",
+        "details": "Lift L-02 is showing a door interlock fault and is unavailable to tenants. A licensed elevator specialist is needed to isolate the controls issue, recover the car safely, and complete a passenger safety test.",
+        "required_skills": [
+          "elevator",
+          "controls",
+          "electrical"
+        ],
+        "region": "east",
+        "sla_hours": 6,
+        "risk_level": "high"
+      },
+      "top_k": 4
+    },
+    {
+      "id": "solar-battery",
+      "label": "Sunvale Logistics \u00b7 Solar storage alarm",
+      "job": {
+        "job_id": "JOB-24083",
+        "customer_name": "Sunvale Logistics",
+        "site_name": "Sunvale Distribution Center \u00b7 South Yard",
+        "asset_label": "Battery energy storage BESS-11",
+        "job_type": "Energy system inspection",
+        "title": "Battery storage system reporting thermal alarm",
+        "details": "The solar array is online but the battery controller has raised a thermal warning on cabinet 11. Inspect the battery management system, confirm isolation and fire controls, and return the site to a safe operating state.",
+        "required_skills": [
+          "battery",
+          "solar",
+          "electrical"
+        ],
+        "region": "south",
+        "sla_hours": 8,
+        "risk_level": "high"
+      },
+      "top_k": 4
+    },
+    {
+      "id": "water-leak",
+      "label": "Riverside Hotel \u00b7 Back-of-house leak",
+      "job": {
+        "job_id": "JOB-24084",
+        "customer_name": "Riverside Hospitality Co.",
+        "site_name": "Riverside Hotel \u00b7 Service Kitchen",
+        "asset_label": "Hot water riser HW-3",
+        "job_type": "Commercial plumbing",
+        "title": "Hot water riser leak near service kitchen",
+        "details": "A leak has appeared at the hot water riser above the service kitchen ceiling. Stop the leak, protect food-service operations, inspect adjacent pipework, and document any water damage before reopening the area.",
+        "required_skills": [
+          "plumbing",
+          "water treatment"
+        ],
+        "region": "south",
+        "sla_hours": 12,
+        "risk_level": "medium"
+      },
+      "top_k": 4
+    },
+    {
+      "id": "backup-generator",
+      "label": "Cedar Health Campus \u00b7 Generator test",
+      "job": {
+        "job_id": "JOB-24085",
+        "customer_name": "Cedar Health Network",
+        "site_name": "Cedar Health Campus \u00b7 Critical Care Wing",
+        "asset_label": "Standby generator GEN-02",
+        "job_type": "Generator maintenance",
+        "title": "Standby generator failed its monthly transfer test",
+        "details": "The generator starts but did not carry the critical-care load during the automatic transfer test. Diagnose the transfer switch and generator controls, verify fuel and battery systems, and complete a witnessed retest.",
+        "required_skills": [
+          "generator",
+          "electrical",
+          "controls"
+        ],
+        "region": "central",
+        "sla_hours": 6,
+        "risk_level": "medium"
+      },
+      "top_k": 4
+    }
+  ]
+}

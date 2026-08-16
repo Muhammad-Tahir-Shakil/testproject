@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+*.egg-info/
+
+# Build and deployment artefacts
+.aws-sam/
+*.zip
+
+# Local runtime state: SQLite database, model artifact, audit log.
+# Note that .gitignore has no effect on what `sam build` packages -- the Lambda
+# boundary is enforced by scoping CodeUri to src/ in template.yaml.
+runtime/*
+!runtime/.gitkeep
+*.db
+*.db-wal
+*.db-shm
+audit.log
+audit.jsonl
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+local.settings.json
+
+# Assessment working files, not part of the submission
+email
+*.pdf
+Requirement_testproject.md
+AI Engineer – Technical Assessment - *.md
+
+# OS
+.DS_Store

@@ -1,0 +1,45 @@
+{
+  "event_id": "evt-1001",
+  "event_type": "JobCreated",
+  "job": {
+    "job_id": "JOB-1001",
+    "job_type": "HVAC repair",
+    "required_skills": [
+      "hvac",
+      "electrical"
+    ],
+    "region": "north",
+    "sla_hours": 8,
+    "risk_level": "medium"
+  },
+  "vendors": [
+    {
+      "vendor_id": "V-001",
+      "name": "Northstar Services",
+      "service_regions": [
+        "north",
+        "central"
+      ],
+      "skills": [
+        "hvac",
+        "electrical",
+        "plumbing"
+      ],
+      "capacity_total": 10,
+      "capacity_used": 4,
+      "completion_rate": 0.94,
+      "similar_job_rate": 0.91,
+      "avg_response_hours": 3,
+      "rework_rate": 0.05,
+      "risk_levels_supported": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "active": true,
+      "sample_size": 412,
+      "data_age_hours": 3.0
+    }
+  ],
+  "top_k": 3
+}

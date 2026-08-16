@@ -1,0 +1,316 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: testproject explainable vendor recommendation workflow on AWS.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+    AllowedPattern: "^[a-z0-9-]+$"
+  FrontendOrigin:
+    Type: String
+    Default: http://127.0.0.1:8000
+    Description: Exact browser origin allowed to call the API.
+  FrontendRedirectUri:
+    Type: String
+    Default: http://127.0.0.1:8000/
+    Description: Exact Cognito callback and logout URL.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 60
+    MemorySize: 512
+    Environment:
+      Variables:
+        DEPLOYMENT_TARGET: aws
+        MODEL_VERSION: rules-v1
+        CONFIDENCE_THRESHOLD: "0.45"
+  HttpApi:
+    CorsConfiguration:
+      AllowOrigins:
+        - !Ref FrontendOrigin
+      AllowHeaders:
+        - Authorization
+        - Content-Type
+      AllowMethods:
+        - GET
+        - POST
+        - OPTIONS
+      MaxAge: 300
+    Auth:
+      Authorizers:
+        CognitoAuthorizer:
+          IdentitySource: $request.header.Authorization
+          JwtConfiguration:
+            issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}
+            audience:
+              - !Ref CognitoUserPoolClient
+      DefaultAuthorizer: CognitoAuthorizer
+
+Resources:
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub testproject-${EnvironmentName}-users
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+      UserPoolTags:
+        Application: testproject
+        Environment: !Ref EnvironmentName
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: !Sub testproject-${EnvironmentName}-browser
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+      CallbackURLs:
+        - !Ref FrontendRedirectUri
+      LogoutURLs:
+        - !Ref FrontendRedirectUri
+      SupportedIdentityProviders:
+        - COGNITO
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub testproject-${AWS::AccountId}-${EnvironmentName}
+      UserPoolId: !Ref CognitoUserPool
+
+  AuditBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  AuditBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AuditBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource:
+              - !GetAtt AuditBucket.Arn
+              - !Sub ${AuditBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  JobCreatedDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub testproject-${EnvironmentName}-job-created-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  JobCreatedQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub testproject-${EnvironmentName}-job-created
+      VisibilityTimeout: 180
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt JobCreatedDeadLetterQueue.Arn
+        maxReceiveCount: 5
+
+  RecommendationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub testproject-${EnvironmentName}-vendor-recommendations
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  RecommendationWorkerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/testproject-${EnvironmentName}-worker
+      RetentionInDays: 14
+
+  RecommendationWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub testproject-${EnvironmentName}-worker
+      # Scoped to src/ on purpose. SAM CLI has no .samignore, so `CodeUri: .`
+      # packaged the entire repository into both functions: design documents,
+      # the assessment brief, the test suite, the browser dashboard, and a
+      # local audit log containing real recommendation payloads. src/ holds
+      # only the handlers, the app package, and requirements.txt.
+      CodeUri: src/
+      Handler: lambda_function.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/testproject-${EnvironmentName}-worker:*
+            - Effect: Allow
+              Action:
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+              Resource: !GetAtt JobCreatedQueue.Arn
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource:
+                - !GetAtt RecommendationQueue.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+              Resource: !Sub ${AuditBucket.Arn}/*
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+              Resource: !GetAtt AuditBucket.Arn
+      Environment:
+        Variables:
+          RECOMMENDATION_QUEUE_URL: !Ref RecommendationQueue
+          AUDIT_BUCKET: !Ref AuditBucket
+      Events:
+        JobCreated:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt JobCreatedQueue.Arn
+            BatchSize: 10
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+  RecommendationApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/testproject-${EnvironmentName}-api
+      RetentionInDays: 14
+
+  RecommendationApi:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub testproject-${EnvironmentName}-api
+      # See the note on RecommendationWorker.CodeUri.
+      CodeUri: src/
+      Handler: lambda_http.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/testproject-${EnvironmentName}-api:*
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt JobCreatedQueue.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+              Resource: !Sub ${AuditBucket.Arn}/*
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+              Resource: !GetAtt AuditBucket.Arn
+      Environment:
+        Variables:
+          AUDIT_BUCKET: !Ref AuditBucket
+          JOB_CREATED_QUEUE_URL: !Ref JobCreatedQueue
+      Events:
+        # Unauthenticated liveness probe. /health returns only non-secret
+        # configuration (model version and thresholds), and having it open lets
+        # an uptime monitor and the deployment smoke test run without minting a
+        # Cognito token. More specific routes win over /{proxy+}, so this does
+        # not weaken authorization on anything else.
+        HealthCheck:
+          Type: HttpApi
+          Properties:
+            Path: /health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        ApiRoot:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        OptionsRoot:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+        OptionsProxy:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway URL for the FastAPI application.
+    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+  JobCreatedQueueUrl:
+    Value: !Ref JobCreatedQueue
+  RecommendationQueueUrl:
+    Value: !Ref RecommendationQueue
+  AuditBucketName:
+    Value: !Ref AuditBucket
+  CognitoUserPoolId:
+    Value: !Ref CognitoUserPool
+  CognitoUserPoolClientId:
+    Value: !Ref CognitoUserPoolClient
+  CognitoDomain:
+    Value: !Sub https://testproject-${AWS::AccountId}-${EnvironmentName}.auth.${AWS::Region}.amazoncognito.com
+  FrontendOrigin:
+    Value: !Ref FrontendOrigin
+  FrontendRedirectUri:
+    Value: !Ref FrontendRedirectUri

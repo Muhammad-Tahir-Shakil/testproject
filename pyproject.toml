@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "retailfixit-vendor-dispatch"
+version = "0.2.0"
+description = "Explainable vendor scorecard and dispatch recommendation service"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "pydantic>=2.7",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx>=0.27",
+    "pytest>=8.0",
+]
+aws = [
+    "boto3>=1.35",
+    "mangum>=0.17",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# src-layout: the Lambda CodeUri is `src/`, so the package lives there and the
+# test run needs it on the path even before an editable install.
+pythonpath = ["src"]
+
+[tool.setuptools]
+# Handler modules referenced by template.yaml (`lambda_function.handler` and
+# `lambda_http.handler`).
+py-modules = ["lambda_function", "lambda_http"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+# The local dashboard is served by StaticFiles, so the assets must survive a
+# non-editable `pip install .` as well as `pip install -e .`.
+app = ["static/*"]

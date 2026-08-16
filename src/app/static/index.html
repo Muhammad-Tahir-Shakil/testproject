@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RetailFixIt Dispatch Control Center</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">RETAILFIXIT DISPATCH</p>
+        <h1>Dispatch Control Center</h1>
+        <p class="subtitle">Local-first vendor scorecard, event flow, and admin review.</p>
+      </div>
+      <div class="header-actions">
+        <span id="mode-badge" class="badge neutral">Local mode</span>
+        <button id="setup-button" class="button primary">Setup local environment</button>
+        <button id="refresh-button" class="button secondary">Refresh</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <section id="notice" class="notice hidden"></section>
+
+      <section class="metric-grid" aria-label="System summary">
+        <article class="metric-card">
+          <span class="metric-label">System status</span>
+          <strong id="system-status">Not setup</strong>
+          <small id="system-detail">Click Setup to initialize local state.</small>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Model</span>
+          <strong id="model-version">Not trained</strong>
+          <small id="model-detail">Offline model artifact</small>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Vendors loaded</span>
+          <strong id="vendor-count">0</strong>
+          <small>Profile records in local SQLite</small>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Audit records</span>
+          <strong id="audit-count">0</strong>
+          <small>Redacted local workflow history</small>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel wide">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">BUSINESS VIEW</p>
+              <h2>Current job and vendor recommendations</h2>
+            </div>
+            <div class="button-group">
+              <button id="run-sample-button" class="button secondary" disabled>Run sample request</button>
+              <button id="run-manual-button" class="button primary" disabled>Run manual request</button>
+            </div>
+          </div>
+          <div id="job-view" class="empty-state">Setup the environment to load the sample job.</div>
+          <form id="manual-job-form" class="manual-form">
+            <p class="eyebrow">MANUAL REQUEST</p>
+            <h3>Dispatch a changed request</h3>
+            <div class="manual-grid">
+              <label>Customer<input id="manual-customer" required /></label>
+              <label>Site<input id="manual-site" required /></label>
+              <label>Asset<input id="manual-asset" required /></label>
+              <label>Job type<input id="manual-type" required /></label>
+              <label>Region<select id="manual-region"><option value="north">North</option><option value="central">Central</option><option value="east">East</option><option value="south">South</option></select></label>
+              <label>SLA hours<input id="manual-sla" type="number" min="1" step="1" required /></label>
+              <label>Risk level<select id="manual-risk"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+              <label>Results<input id="manual-top-k" type="number" min="1" max="5" step="1" value="3" required /></label>
+            </div>
+            <label>Title<input id="manual-title" required /></label>
+            <label>Details<textarea id="manual-details" required></textarea></label>
+            <label>Required skills <small>(comma separated)</small><input id="manual-skills" required /></label>
+          </form>
+          <div id="decision-summary" class="decision-summary"><div class="empty-state">Run a job to see the decision summary.</div></div>
+          <div id="decision-history" class="decision-history"></div>
+          <div id="recommendations" class="recommendation-grid"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">ADMIN PANEL</p>
+              <h2 id="override-heading">Record final decision</h2>
+            </div>
+          </div>
+          <form id="override-form">
+            <label>
+              Vendor
+              <select id="override-vendor" required>
+                <option value="">Setup data first</option>
+              </select>
+            </label>
+            <label>
+              Reason
+              <textarea id="override-reason" required minlength="3" placeholder="Explain the dispatch decision"></textarea>
+            </label>
+            <p class="helper">
+              Acting as <strong id="dispatcher-identity">…</strong>. Attribution comes
+              from the session identity sent as a request header, not from an
+              editable field, so an audit record cannot claim another operator's
+              name.
+            </p>
+            <button id="override-submit" class="button primary full" type="submit">Record decision</button>
+          </form>
+          <div id="override-effect" class="override-effect hidden"></div>
+          <p class="helper">The first decision confirms or changes the AI recommendation. Later submissions update the active decision as a new revision.</p>
+        </article>
+
+        <article class="panel wide">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">EVENT FLOW</p>
+              <h2>From job creation to audit</h2>
+            </div>
+          </div>
+          <div class="flow">
+            <div class="flow-step"><span>01</span><strong>JobCreated</strong><small>Dispatch input</small></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><span>02</span><strong>Score</strong><small>Rules + local ML</small></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><span>03</span><strong>Explain</strong><small>Factors + rationale</small></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><span>04</span><strong>Recommend</strong><small>Top 3–5 vendors</small></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><span>05</span><strong>Audit</strong><small>SQLite / AWS S3</small></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><span>06</span><strong>Decision</strong><small>AI or human</small></div>
+          </div>
+          <div id="event-list" class="timeline"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">DATA CONTRACT</p>
+              <h2>Vendor profile snapshot</h2>
+            </div>
+          </div>
+          <div id="vendor-list" class="data-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">INFRASTRUCTURE</p>
+              <h2>Local and AWS mapping</h2>
+            </div>
+          </div>
+          <div id="infrastructure" class="infra-list"></div>
+        </article>
+
+        <article class="panel wide">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">AUDITABILITY</p>
+              <h2>Recent redacted records</h2>
+            </div>
+          </div>
+          <div id="audit-list" class="audit-list"></div>
+        </article>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

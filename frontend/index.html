@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hybrid Dispatch Control Center</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">HYBRID DISPATCH OPERATIONS</p>
+        <h1>Dispatch Control Center</h1>
+        <p class="muted">One workspace for customer requests, local intelligence, and AWS workflow execution.</p>
+      </div>
+      <div class="actions">
+        <span id="auth-status" class="badge neutral">Not signed in</span>
+        <button id="login-button" class="button primary">Sign in</button>
+        <button id="logout-button" class="button secondary hidden">Sign out</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <section id="notice" class="notice hidden"></section>
+      <section id="auth-panel" class="panel auth-panel">
+        <div>
+          <p class="eyebrow">SECURE WORKSPACE</p>
+          <h2>Sign in to open the dispatch workspace</h2>
+          <p class="muted">Cognito secures the AWS API connection. No AWS access key is sent to this browser.</p>
+        </div>
+        <button id="auth-action" class="button primary">Sign in with Cognito</button>
+      </section>
+
+      <section id="app-panel" class="hidden">
+        <nav class="dashboard-nav" aria-label="Dashboard sections">
+          <a href="#job-workspace">Job workspace</a>
+          <a href="#recommendation-panel">Recommendations</a>
+          <a href="#workflow-panel">Workflow</a>
+          <a href="#operations-panel">Operations</a>
+        </nav>
+
+        <section class="metric-grid">
+          <article class="metric-card"><span>Dispatcher</span><strong id="identity">Cognito user</strong><small>Authenticated session</small></article>
+          <article class="metric-card"><span>Browser intelligence</span><strong id="local-ai-status">Not setup</strong><small id="local-ai-detail">Train the local model for blended scoring</small></article>
+          <article class="metric-card"><span>Workflow connection</span><strong id="api-status">Unknown</strong><small>API Gateway · SQS · Lambda</small></article>
+          <article class="metric-card"><span>Last dispatch</span><strong id="last-run">No run yet</strong><small id="last-run-detail">Select a customer request to begin</small></article>
+        </section>
+
+        <section class="readiness-panel">
+          <div>
+            <p class="eyebrow">START HERE</p>
+            <h2>Prepare the hybrid dispatcher</h2>
+            <p class="muted">Complete the browser model setup before sending a request to AWS.</p>
+          </div>
+          <div class="readiness-steps">
+            <span id="auth-step" class="readiness-step complete">1. Signed in</span>
+            <span id="model-step" class="readiness-step">2. Browser model setup required</span>
+            <span id="dispatch-step" class="readiness-step">3. Dispatch a request</span>
+          </div>
+          <button id="setup-ai" class="button primary">Setup browser model</button>
+        </section>
+
+        <section id="job-workspace" class="workspace-grid">
+          <article class="panel job-editor">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">JOB WORKSPACE</p>
+                <h2>Prepare a customer request</h2>
+                <p class="muted">Use a realistic request or edit every field before dispatching it.</p>
+              </div>
+              <div class="button-group">
+                <button id="run-sample-job" class="button secondary" disabled>Run sample request</button>
+                <button id="run-manual-job" class="button primary" disabled>Run manual request</button>
+              </div>
+            </div>
+            <label>Scenario<select id="job-selector" required></select></label>
+            <div class="form-grid">
+              <label>Customer<input id="job-customer" required /></label>
+              <label>Site<input id="job-site" required /></label>
+              <label>Asset<input id="job-asset" required /></label>
+              <label>Job type<input id="job-type" required /></label>
+              <label>Region<select id="job-region"><option value="north">North</option><option value="central">Central</option><option value="east">East</option><option value="south">South</option></select></label>
+              <label>SLA hours<input id="job-sla" type="number" min="1" step="1" required /></label>
+              <label>Risk level<select id="job-risk"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+              <label>Show results<input id="job-top-k" type="number" min="1" max="5" step="1" required /></label>
+            </div>
+            <label>Request title<input id="job-title" required /></label>
+            <label>Work details<textarea id="job-details" required placeholder="Describe the observed issue, constraints, and completion criteria."></textarea></label>
+            <label>Required skills <small>(comma separated)</small><input id="job-skills" required /></label>
+            <div id="job-status" class="editor-status">Choose a scenario to load the editable request.</div>
+          </article>
+
+          <aside class="panel">
+            <div class="panel-head"><div><p class="eyebrow">REQUEST PREVIEW</p><h2>Dispatch context</h2></div></div>
+            <div id="job-data" class="job-preview">Sign in to load customer requests.</div>
+            <div class="match-guide">
+              <strong>How matching works</strong>
+              <span>Explicit skills plus service terms found in the title and details are compared with each active vendor.</span>
+            </div>
+            <div class="panel-head compact-head"><div><p class="eyebrow">LOCAL INTELLIGENCE</p><h2>Browser model</h2></div><span id="model-card-status" class="tag">Setup required</span></div>
+            <div id="model-details" class="callout">No local model is active.</div>
+          </aside>
+        </section>
+
+        <section id="recommendation-panel" class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">DISPATCH RECOMMENDATIONS</p>
+              <h2>Ranked vendor options</h2>
+            <p id="dispatch-help" class="muted">Setup the browser model to enable dispatch.</p>
+            </div>
+            <span id="recommendation-summary" class="result-badge neutral">No result yet</span>
+          </div>
+          <div id="decision-summary" class="decision-summary"><div class="callout">No dispatch decision has been recorded.</div></div>
+          <div id="decision-history" class="decision-history"></div>
+          <div id="recommendations" class="recommendations"><div class="callout">Dispatch a request to see job-specific vendor evidence.</div></div>
+        </section>
+
+        <section class="lower-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">DISPATCH DECISION</p><h2 id="override-heading">Record final decision</h2></div></div>
+            <form id="override-form">
+              <label>Vendor<select id="override-vendor" required><option value="">Run a request first</option></select></label>
+              <label>Reason<textarea id="override-reason" minlength="3" required placeholder="Why should dispatch choose a different vendor?"></textarea></label>
+              <button id="override-submit" class="button primary full" type="submit">Record decision</button>
+            </form>
+            <div id="override-effect" class="override-effect hidden"></div>
+            <p class="helper">The first decision confirms or changes the AI recommendation. Later submissions update the active decision as a new revision.</p>
+          </article>
+
+          <article id="workflow-panel" class="panel">
+            <div class="panel-head"><div><p class="eyebrow">LIVE WORKFLOW</p><h2>Request trace</h2></div></div>
+            <div id="security" class="callout">Cognito authorization will be verified when you dispatch.</div>
+            <div id="trace" class="trace"></div>
+          </article>
+        </section>
+
+        <section id="operations-panel" class="panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">OPERATIONS</p><h2>Hybrid runtime status</h2><p class="muted">Local intelligence stays in the browser while the protected workflow and audit trail run through AWS services.</p></div>
+          </div>
+          <div class="runtime-grid">
+            <div class="runtime-card"><span class="runtime-icon">LOCAL</span><strong>Browser model and session state</strong><small id="local-runtime-detail">Model weights are trained and retained in this browser session.</small></div>
+            <div class="runtime-card"><span class="runtime-icon cloud">AWS</span><strong>Protected workflow and audit</strong><small id="aws-runtime-detail">Cognito · API Gateway · SQS · Lambda · S3</small></div>
+            <div class="runtime-card"><span class="runtime-icon">DATA</span><strong>Customer request context</strong><small>Only the active synthetic request and scored vendor evidence are sent for this run.</small></div>
+          </div>
+          <div class="flow"><span>Browser input</span><b>→</b><span>Cognito JWT</span><b>→</b><span>API Gateway</span><b>→</b><span>API Lambda</span><b>→</b><span>SQS JobCreated</span><b>→</b><span>Worker Lambda</span><b>→</b><span>Recommendation SQS</span><b>→</b><span>S3 trace/audit</span><b>→</b><span>Browser result</span></div>
+        </section>
+      </section>
+    </main>
+    <script src="./config.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

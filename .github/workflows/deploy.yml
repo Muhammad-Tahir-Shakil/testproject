@@ -1,0 +1,167 @@
+name: Deploy hybrid dashboard
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  pages: write
+
+concurrency:
+  group: pages-and-aws-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      STACK_NAME: testproject-vendor-dispatch
+      ENVIRONMENT_NAME: dev
+      PAGES_ORIGIN: ${{ vars.PAGES_ORIGIN || format('https://{0}.github.io', github.repository_owner) }}
+      PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Nothing reaches AWS until the suite is green. Deploying an unverified
+      # build was the largest process gap in the previous pipeline.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install and test
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,aws]'
+          pytest -q
+
+      - name: Verify the training fixture is reproducible
+        run: |
+          python scripts/generate_training_data.py
+          git diff --exit-code -- data/training.json
+
+      - name: Static validation (contracts, dashboards, docs)
+        run: python scripts/validate_project.py
+
+      - name: Scoring invariants across every fixture scenario
+        run: python scripts/simulate_scoring.py
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Execute the browser second-opinion model
+        run: node scripts/check_browser_model.mjs
+
+      - name: Configure AWS with GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Setup AWS SAM
+        uses: aws-actions/setup-sam@v2
+
+      - name: Validate and build backend
+        run: |
+          sam validate --template template.yaml --lint
+          sam build
+
+      - name: Deploy backend
+        run: |
+          export CLOUDFORMATION_ROLE_ARN="$(
+            aws cloudformation describe-stacks \
+              --stack-name testproject-github-oidc \
+              --region "$AWS_REGION" \
+              --query "Stacks[0].Outputs[?OutputKey=='CloudFormationServiceRoleArn'].OutputValue" \
+              --output text
+          )"
+          sam deploy \
+            --stack-name "$STACK_NAME" \
+            --region "$AWS_REGION" \
+            --role-arn "$CLOUDFORMATION_ROLE_ARN" \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              EnvironmentName="$ENVIRONMENT_NAME" \
+              FrontendOrigin="$PAGES_ORIGIN" \
+              FrontendRedirectUri="$PAGES_URL"
+
+      - name: Write public frontend configuration
+        run: |
+          export API_URL="$(
+            aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --region "$AWS_REGION" \
+              --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
+              --output text
+          )"
+          export USER_POOL_ID="$(
+            aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --region "$AWS_REGION" \
+              --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolId'].OutputValue" \
+              --output text
+          )"
+          export CLIENT_ID="$(
+            aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --region "$AWS_REGION" \
+              --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolClientId'].OutputValue" \
+              --output text
+          )"
+          export COGNITO_DOMAIN="$(
+            aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --region "$AWS_REGION" \
+              --query "Stacks[0].Outputs[?OutputKey=='CognitoDomain'].OutputValue" \
+              --output text
+          )"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          config = {
+              "apiBaseUrl": os.environ["API_URL"],
+              "cognitoDomain": os.environ["COGNITO_DOMAIN"],
+              "cognitoClientId": os.environ["CLIENT_ID"],
+              "userPoolId": os.environ["USER_POOL_ID"],
+              "redirectUri": os.environ["PAGES_URL"],
+              "trainingUrl": "./training.json",
+          }
+          Path("frontend/config.js").write_text(
+              "window.RETAILFIXIT_CONFIG = "
+              + json.dumps(config, indent=2)
+              + ";\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload dashboard artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend
+
+      - name: Publish dashboard
+        id: deployment
+        uses: actions/deploy-pages@v4

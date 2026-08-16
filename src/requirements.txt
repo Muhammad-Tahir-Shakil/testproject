@@ -1,0 +1,14 @@
+# Lambda runtime dependencies. `sam build` installs these into the deployment
+# package from the CodeUri (src/), so this file also defines what ships.
+#
+# uvicorn is deliberately absent: Mangum adapts the ASGI app to the Lambda
+# event, so no ASGI server is needed and omitting it keeps the package small.
+#
+# boto3/botocore are pinned rather than relying on the versions baked into the
+# Lambda runtime, because app/idempotency.py uses conditional writes
+# (PutObject IfNoneMatch) and the bundled version lags behind.
+boto3>=1.36
+botocore>=1.36
+fastapi>=0.115
+mangum>=0.17
+pydantic>=2.7

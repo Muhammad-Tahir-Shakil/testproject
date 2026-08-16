@@ -1,0 +1,122 @@
+{
+  "job": {
+    "job_id": "JOB-1001",
+    "customer_name": "Pinecrest Retail Group",
+    "site_name": "Pinecrest Mall \u00b7 North Plant Room",
+    "asset_label": "Chiller plant CH-04",
+    "job_type": "HVAC repair",
+    "title": "Emergency chiller failure affecting tenant cooling",
+    "details": "The primary chiller is short-cycling and two condenser fans are offline. Inspect the refrigeration circuit, verify electrical controls, and restore stable cooling before the morning trading window.",
+    "required_skills": [
+      "hvac",
+      "electrical"
+    ],
+    "region": "north",
+    "sla_hours": 8,
+    "risk_level": "medium"
+  },
+  "vendors": [
+    {
+      "vendor_id": "V-001",
+      "name": "Northstar Services",
+      "service_regions": [
+        "north",
+        "central"
+      ],
+      "skills": [
+        "hvac",
+        "electrical",
+        "plumbing",
+        "refrigeration",
+        "controls"
+      ],
+      "capacity_total": 10,
+      "capacity_used": 4,
+      "completion_rate": 0.94,
+      "similar_job_rate": 0.91,
+      "avg_response_hours": 3.0,
+      "rework_rate": 0.05,
+      "risk_levels_supported": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "active": true,
+      "sample_size": 412,
+      "data_age_hours": 3.0
+    },
+    {
+      "vendor_id": "V-002",
+      "name": "RapidFix Partners",
+      "service_regions": [
+        "north"
+      ],
+      "skills": [
+        "hvac"
+      ],
+      "capacity_total": 8,
+      "capacity_used": 2,
+      "completion_rate": 0.88,
+      "similar_job_rate": 0.83,
+      "avg_response_hours": 2.0,
+      "rework_rate": 0.1,
+      "risk_levels_supported": [
+        "low",
+        "medium"
+      ],
+      "active": true,
+      "sample_size": 168,
+      "data_age_hours": 6.0
+    },
+    {
+      "vendor_id": "V-003",
+      "name": "Central Trade Co",
+      "service_regions": [
+        "central"
+      ],
+      "skills": [
+        "electrical",
+        "plumbing"
+      ],
+      "capacity_total": 12,
+      "capacity_used": 5,
+      "completion_rate": 0.9,
+      "similar_job_rate": 0.72,
+      "avg_response_hours": 6.0,
+      "rework_rate": 0.08,
+      "risk_levels_supported": [
+        "medium",
+        "high"
+      ],
+      "active": true,
+      "sample_size": 96,
+      "data_age_hours": 12.0
+    },
+    {
+      "vendor_id": "V-004",
+      "name": "Unavailable Example",
+      "service_regions": [
+        "north"
+      ],
+      "skills": [
+        "hvac",
+        "electrical"
+      ],
+      "capacity_total": 4,
+      "capacity_used": 4,
+      "completion_rate": 0.99,
+      "similar_job_rate": 0.99,
+      "avg_response_hours": 1.0,
+      "rework_rate": 0.01,
+      "risk_levels_supported": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "active": true,
+      "sample_size": 240,
+      "data_age_hours": 4.0
+    }
+  ],
+  "top_k": 3
+}
